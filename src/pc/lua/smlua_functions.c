@@ -1,5 +1,9 @@
 #include "smlua.h"
 #include "smlua_cobject.h"
+#include "smlua_json.h"
+#include "pc/browser/browser_lua.h"
+#include "pc/network/network_player.h"
+#include "pc/network/packets/packet_lua_custom.h"
 
 #include <PR/gbi.h>
 
@@ -297,6 +301,33 @@ int smlua_func_network_send_bytestring(lua_State* L) {
 int smlua_func_network_send_bytestring_to(lua_State* L) {
     if (!smlua_functions_valid_param_count(L, 3)) { return 0; }
     network_send_lua_custom_bytestring(false);
+    return 1;
+}
+
+int smlua_func_network_get_last_packet_sender_local_index(lua_State* L) {
+    if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
+    lua_pushinteger(L, network_lua_custom_sender_local_index());
+    return 1;
+}
+
+int smlua_func_network_get_last_packet_sender_global_index(lua_State* L) {
+    if (!smlua_functions_valid_param_count(L, 0)) { return 0; }
+    lua_pushinteger(L, network_lua_custom_sender_global_index());
+    return 1;
+}
+
+int smlua_func_network_player_is_moderator(lua_State* L) {
+    if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
+
+    s32 localIndex = smlua_to_integer(L, 1);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("network_player_is_moderator: Failed to convert parameter 1"); return 0; }
+
+    if (localIndex < 0 || localIndex >= MAX_PLAYERS) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    lua_pushboolean(L, gNetworkPlayers[localIndex].moderator);
     return 1;
 }
 
@@ -1098,6 +1129,9 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "network_send_to", smlua_func_network_send_to);
     smlua_bind_function(L, "network_send_bytestring", smlua_func_network_send_bytestring);
     smlua_bind_function(L, "network_send_bytestring_to", smlua_func_network_send_bytestring_to);
+    smlua_bind_function(L, "network_get_last_packet_sender_local_index", smlua_func_network_get_last_packet_sender_local_index);
+    smlua_bind_function(L, "network_get_last_packet_sender_global_index", smlua_func_network_get_last_packet_sender_global_index);
+    smlua_bind_function(L, "network_player_is_moderator", smlua_func_network_player_is_moderator);
     smlua_bind_function(L, "set_exclamation_box_contents", smlua_func_set_exclamation_box_contents);
     smlua_bind_function(L, "get_exclamation_box_contents", smlua_func_get_exclamation_box_contents);
     smlua_bind_function(L, "get_texture_info", smlua_func_get_texture_info);
@@ -1114,4 +1148,6 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "djui_hud_print_text", smlua_func_djui_hud_print_text);
     smlua_bind_function(L, "djui_hud_print_text_interpolated", smlua_func_djui_hud_print_text_interpolated);
     smlua_bind_function(L, "return_self", smlua_func_return_self); // compatibility band-aid
+    smlua_json_bind_functions();
+    browser_lua_bind_functions();
 }

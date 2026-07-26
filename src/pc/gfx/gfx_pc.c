@@ -47,6 +47,7 @@ static struct TextureCache gfx_texture_cache = { 0 };
 static struct ColorCombiner color_combiner_pool[CC_MAX_SHADERS] = { 0 };
 static uint8_t color_combiner_pool_size = 0;
 static uint8_t color_combiner_pool_index = 0;
+static const uint8_t *sDynamicTextureDirtyAddrs[256] = { 0 };
 
 struct RSP {
     ALIGNED16 Mat4 MP_matrix;
@@ -325,6 +326,41 @@ void gfx_texture_cache_clear(void) {
     memset(&gfx_texture_cache, 0, sizeof(gfx_texture_cache));
 }
 
+static bool gfx_dynamic_texture_consume_dirty(const uint8_t *addr) {
+    if (addr == NULL) { return false; }
+    for (u32 i = 0; i < ARRAY_COUNT(sDynamicTextureDirtyAddrs); i++) {
+        if (sDynamicTextureDirtyAddrs[i] == addr) {
+            sDynamicTextureDirtyAddrs[i] = NULL;
+            return true;
+        }
+    }
+    return false;
+}
+
+void gfx_dynamic_texture_mark_dirty(const void *addr) {
+    if (addr == NULL) { return; }
+    for (u32 i = 0; i < ARRAY_COUNT(sDynamicTextureDirtyAddrs); i++) {
+        if (sDynamicTextureDirtyAddrs[i] == addr) {
+            return;
+        }
+    }
+    for (u32 i = 0; i < ARRAY_COUNT(sDynamicTextureDirtyAddrs); i++) {
+        if (sDynamicTextureDirtyAddrs[i] == NULL) {
+            sDynamicTextureDirtyAddrs[i] = addr;
+            return;
+        }
+    }
+}
+
+void gfx_dynamic_texture_forget(const void *addr) {
+    if (addr == NULL) { return; }
+    for (u32 i = 0; i < ARRAY_COUNT(sDynamicTextureDirtyAddrs); i++) {
+        if (sDynamicTextureDirtyAddrs[i] == addr) {
+            sDynamicTextureDirtyAddrs[i] = NULL;
+        }
+    }
+}
+
 static bool gfx_texture_cache_lookup(int tile, struct TextureHashmapNode **n, const uint8_t *orig_addr, uint32_t fmt, uint32_t siz) {
     size_t hash = (uintptr_t)orig_addr;
 #define CMPADDR(x, y) x == y
@@ -334,9 +370,10 @@ static bool gfx_texture_cache_lookup(int tile, struct TextureHashmapNode **n, co
     struct TextureHashmapNode **node = &gfx_texture_cache.hashmap[hash];
     while (node != NULL && *node != NULL && *node - gfx_texture_cache.pool < (int)gfx_texture_cache.pool_pos) {
         if (CMPADDR((*node)->texture_addr, orig_addr) && (*node)->fmt == fmt && (*node)->siz == siz) {
+            bool forceUpload = gfx_dynamic_texture_consume_dirty(orig_addr);
             gfx_rapi->select_texture(tile, (*node)->texture_id);
             *n = *node;
-            return true;
+            return !forceUpload;
         }
         node = &(*node)->next;
     }

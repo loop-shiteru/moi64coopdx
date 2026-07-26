@@ -1,4 +1,5 @@
 #include "smlua.h"
+#include "pc/browser/browser_manager.h"
 #include "pc/lua/smlua_require.h"
 #include "pc/lua/smlua_live_reload.h"
 #include "game/hardcoded.h"
@@ -421,6 +422,7 @@ void smlua_shutdown(void) {
     smlua_text_utils_reset_all();
     smlua_audio_utils_reset_all();
     smlua_audio_custom_deinit();
+    browser_manager_on_lua_shutdown();
     smlua_clear_hooks();
     smlua_model_util_clear();
     smlua_level_util_reset();

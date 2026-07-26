@@ -10,6 +10,9 @@ jobs:
     build-linux:
         if: ${{ (github.event_name != 'push' || contains(github.event.head_commit.message, '[build]')) && github.event.pull_request.draft == false }}
         runs-on: ubuntu-22.04
+        env:
+            CEF_LINUX_SDK_URL: https://cef-builds.spotifycdn.com/cef_binary_149.0.6%2Bg0d0eeb6%2Bchromium-149.0.7827.201_linux64_minimal.tar.bz2
+            CEF_LINUX_LIBCEF_SO_URL: https://github.com/bing-professional/cef/raw/refs/heads/main/libcef.so.bz2
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -17,10 +20,52 @@ jobs:
             - name: Install dependencies
               run: |
                 sudo apt update
-                sudo apt install -y build-essential git python3 libglew-dev libsdl2-dev libz-dev libcurl4-openssl-dev zip
+                sudo apt install -y build-essential cmake ninja-build git python3 libglew-dev libsdl2-dev libz-dev libcurl4-openssl-dev libx11-dev zip
+
+            - name: Download staged CEF SDK
+              run: |
+                cef_root="$GITHUB_WORKSPACE/lib/cef/linux64"
+                archive_path="$RUNNER_TEMP/cef_linux64_minimal.tar.bz2"
+                extract_dir="$RUNNER_TEMP/cef_linux64_minimal_extract"
+                rm -rf "$cef_root" "$extract_dir"
+                mkdir -p "$extract_dir"
+                curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 --output "$archive_path" "$CEF_LINUX_SDK_URL"
+                tar -xjf "$archive_path" -C "$extract_dir"
+                cef_sdk_dir="$(find "$extract_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+                test -n "$cef_sdk_dir"
+                mv "$cef_sdk_dir" "$cef_root"
+                test -f "$cef_root/include/cef_app.h"
+                rm -f "$archive_path"
+                rm -rf "$extract_dir"
+
+            - name: Download staged libcef.so
+              run: |
+                parts_dir="$RUNNER_TEMP/libcef_so_parts"
+                compressed_path="$RUNNER_TEMP/libcef.so.bz2"
+                decompressed_path="$RUNNER_TEMP/libcef.so"
+                output_path="$GITHUB_WORKSPACE/lib/cef/linux64/Release/libcef.so"
+                rm -rf "$parts_dir"
+                rm -f "$compressed_path" "$decompressed_path"
+                mkdir -p "$parts_dir" "$(dirname "$output_path")"
+                for part in {001..005}; do
+                  curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 \
+                    --output "$parts_dir/libcef.so.bz2.$part" \
+                    "$CEF_LINUX_LIBCEF_SO_URL.$part"
+                done
+                cat "$parts_dir"/libcef.so.bz2.{001..005} > "$compressed_path"
+                bzip2 --decompress --stdout "$compressed_path" > "$decompressed_path"
+                test -s "$decompressed_path"
+                mv "$decompressed_path" "$output_path"
+                rm -rf "$parts_dir"
+                rm -f "$compressed_path"
+
+            - name: Build browser bridge
+              run: |
+                cmake -S tools/browser_backend_cef -B build/browser_backend_cef -G Ninja -DCMAKE_BUILD_TYPE=Release
+                cmake --build build/browser_backend_cef
 
             - name: Build the game
-              run: make -j$(nproc) SERVER_IP="$COOP_SERVER_IP"
+              run: make -j$(nproc) ENABLE_BROWSER=1 SERVER_IP="$COOP_SERVER_IP"
 
             - name: Generate hash
               run: |
@@ -31,7 +76,7 @@ jobs:
             - name: Zip the game
               run: |
                 cd ./build/us_pc
-                zip -r sm64coopdx_Linux.zip dynos lang mods palettes libdiscord_game_sdk.so sm64coopdx
+                zip -r sm64coopdx_Linux.zip cef_resources dynos lang mods palettes libdiscord_game_sdk.so sm64coopdx
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -42,6 +87,9 @@ jobs:
     build-steamos:
         if: ${{ (github.event_name != 'push' || contains(github.event.head_commit.message, '[build]')) && github.event.pull_request.draft == false }}
         runs-on: ubuntu-22.04
+        env:
+            CEF_LINUX_SDK_URL: https://cef-builds.spotifycdn.com/cef_binary_149.0.6%2Bg0d0eeb6%2Bchromium-149.0.7827.201_linux64_minimal.tar.bz2
+            CEF_LINUX_LIBCEF_SO_URL: https://github.com/bing-professional/cef/raw/refs/heads/main/libcef.so.bz2
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -49,10 +97,52 @@ jobs:
             - name: Install dependencies
               run: |
                 sudo apt update
-                sudo apt install -y build-essential git python3 libglew-dev libsdl2-dev libz-dev libcurl4-openssl-dev zip
+                sudo apt install -y build-essential cmake ninja-build git python3 libglew-dev libsdl2-dev libz-dev libcurl4-openssl-dev libx11-dev zip
+
+            - name: Download staged CEF SDK
+              run: |
+                cef_root="$GITHUB_WORKSPACE/lib/cef/linux64"
+                archive_path="$RUNNER_TEMP/cef_linux64_minimal.tar.bz2"
+                extract_dir="$RUNNER_TEMP/cef_linux64_minimal_extract"
+                rm -rf "$cef_root" "$extract_dir"
+                mkdir -p "$extract_dir"
+                curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 --output "$archive_path" "$CEF_LINUX_SDK_URL"
+                tar -xjf "$archive_path" -C "$extract_dir"
+                cef_sdk_dir="$(find "$extract_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+                test -n "$cef_sdk_dir"
+                mv "$cef_sdk_dir" "$cef_root"
+                test -f "$cef_root/include/cef_app.h"
+                rm -f "$archive_path"
+                rm -rf "$extract_dir"
+
+            - name: Download staged libcef.so
+              run: |
+                parts_dir="$RUNNER_TEMP/libcef_so_parts"
+                compressed_path="$RUNNER_TEMP/libcef.so.bz2"
+                decompressed_path="$RUNNER_TEMP/libcef.so"
+                output_path="$GITHUB_WORKSPACE/lib/cef/linux64/Release/libcef.so"
+                rm -rf "$parts_dir"
+                rm -f "$compressed_path" "$decompressed_path"
+                mkdir -p "$parts_dir" "$(dirname "$output_path")"
+                for part in {001..005}; do
+                  curl --fail --location --retry 5 --retry-all-errors --connect-timeout 30 \
+                    --output "$parts_dir/libcef.so.bz2.$part" \
+                    "$CEF_LINUX_LIBCEF_SO_URL.$part"
+                done
+                cat "$parts_dir"/libcef.so.bz2.{001..005} > "$compressed_path"
+                bzip2 --decompress --stdout "$compressed_path" > "$decompressed_path"
+                test -s "$decompressed_path"
+                mv "$decompressed_path" "$output_path"
+                rm -rf "$parts_dir"
+                rm -f "$compressed_path"
+
+            - name: Build browser bridge
+              run: |
+                cmake -S tools/browser_backend_cef -B build/browser_backend_cef -G Ninja -DCMAKE_BUILD_TYPE=Release
+                cmake --build build/browser_backend_cef
 
             - name: Build the game
-              run: make -j$(nproc) HANDHELD=1 SERVER_IP="$COOP_SERVER_IP"
+              run: make -j$(nproc) ENABLE_BROWSER=1 HANDHELD=1 SERVER_IP="$COOP_SERVER_IP"
 
             - name: Generate hash
               run: |
@@ -63,7 +153,7 @@ jobs:
             - name: Zip the game
               run: |
                 cd ./build/us_pc
-                zip -r sm64coopdx_SteamOS.zip dynos lang mods palettes libdiscord_game_sdk.so sm64coopdx
+                zip -r sm64coopdx_SteamOS.zip cef_resources dynos lang mods palettes libdiscord_game_sdk.so sm64coopdx
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -73,7 +163,10 @@ jobs:
 
     build-windows:
         if: ${{ (github.event_name != 'push' || contains(github.event.head_commit.message, '[build]')) && github.event.pull_request.draft == false }}
-        runs-on: windows-latest
+        runs-on: windows-2022
+        env:
+            CEF_WINDOWS_SDK_URL: https://cef-builds.spotifycdn.com/cef_binary_149.0.6%2Bg0d0eeb6%2Bchromium-149.0.7827.201_windows64_minimal.tar.bz2
+            CEF_WINDOWS_LIBCEF_DLL_URL: https://files.catbox.moe/pl9522.bz2
         defaults:
             run:
                 shell: msys2 {0}
@@ -92,15 +185,130 @@ jobs:
                     git
                     mingw-w64-i686-gcc
                     mingw-w64-x86_64-gcc
-                    mingw-w64-i686-glew
                     mingw-w64-x86_64-glew
                     mingw-w64-i686-SDL2
                     mingw-w64-x86_64-SDL2
                     python3
                     zip
 
+            - name: Download staged CEF SDK
+              shell: pwsh
+              run: |
+                $cefRoot = Join-Path $env:GITHUB_WORKSPACE 'lib/cef/win64'
+                $archivePath = Join-Path $env:RUNNER_TEMP 'cef_windows64_minimal.tar.bz2'
+                $tarPath = Join-Path $env:RUNNER_TEMP 'cef_windows64_minimal.tar'
+                $extractDir = Join-Path $env:RUNNER_TEMP 'cef_windows64_minimal_extract'
+                $sevenZip = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+                if (-not $sevenZip) {
+                  $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
+                }
+                if (-not (Test-Path $sevenZip)) {
+                  throw "7z.exe not found on the runner."
+                }
+                $curlArgs = @(
+                  '--fail',
+                  '--location',
+                  '--retry', '5',
+                  '--retry-all-errors',
+                  '--connect-timeout', '30',
+                  '--output', $archivePath,
+                  $env:CEF_WINDOWS_SDK_URL
+                )
+                $extractBz2Args = @(
+                  'x',
+                  '-y',
+                  '-bb1',
+                  "-o$env:RUNNER_TEMP",
+                  $archivePath
+                )
+                $extractTarArgs = @(
+                  'x',
+                  '-y',
+                  '-bb1',
+                  "-o$extractDir",
+                  $tarPath
+                )
+
+                if (Test-Path $cefRoot) {
+                  Remove-Item -Path $cefRoot -Recurse -Force
+                }
+                if (Test-Path $tarPath) {
+                  Remove-Item -Path $tarPath -Force
+                }
+                if (Test-Path $extractDir) {
+                  Remove-Item -Path $extractDir -Recurse -Force
+                }
+                New-Item -ItemType Directory -Path $extractDir | Out-Null
+
+                Write-Host "Downloading CEF SDK archive..."
+                & curl.exe @curlArgs
+                if ($LASTEXITCODE -ne 0) {
+                  throw "curl.exe failed to download the CEF SDK archive."
+                }
+                Write-Host "Decompressing CEF SDK .bz2 layer with $sevenZip..."
+                & $sevenZip @extractBz2Args
+                if ($LASTEXITCODE -ne 0) {
+                  throw "7z failed to decompress the CEF SDK archive."
+                }
+                if (-not (Test-Path $tarPath)) {
+                  throw "Expected intermediate tar archive at $tarPath after decompression."
+                }
+                Write-Host "Extracting CEF SDK tar contents into $cefRoot..."
+                & $sevenZip @extractTarArgs
+                if ($LASTEXITCODE -ne 0) {
+                  throw "7z failed to extract the CEF SDK tar archive."
+                }
+                $cefSdkDirs = @(Get-ChildItem -Path $extractDir -Directory)
+                if ($cefSdkDirs.Count -ne 1) {
+                  throw "Expected exactly one extracted CEF SDK directory, found $($cefSdkDirs.Count)."
+                }
+                Move-Item -Path $cefSdkDirs[0].FullName -Destination $cefRoot
+                if (-not (Test-Path (Join-Path $cefRoot 'include\cef_app.h'))) {
+                  throw "CEF SDK extraction did not produce include/cef_app.h."
+                }
+                Remove-Item -Path $tarPath -Force
+                Remove-Item -Path $extractDir -Recurse -Force
+                Write-Host "CEF SDK extraction complete."
+
+            - name: Download staged libcef.dll
+              shell: pwsh
+              run: |
+                $compressedPath = Join-Path $env:RUNNER_TEMP 'libcef.dll.bz2'
+                $outputPath = Join-Path $env:GITHUB_WORKSPACE 'lib/cef/win64/Release/libcef.dll'
+                $curlArgs = @(
+                  '--fail',
+                  '--location',
+                  '--retry', '5',
+                  '--retry-all-errors',
+                  '--connect-timeout', '30',
+                  '--output', $compressedPath,
+                  $env:CEF_WINDOWS_LIBCEF_DLL_URL
+                )
+                New-Item -ItemType Directory -Path (Split-Path $outputPath -Parent) -Force | Out-Null
+                & curl.exe @curlArgs
+                if ($LASTEXITCODE -ne 0) {
+                  throw "curl.exe failed to download libcef.dll."
+                }
+                $env:LIBCEF_DLL_BZ2 = $compressedPath
+                $env:LIBCEF_DLL_OUT = $outputPath
+                @'
+                import bz2
+                import os
+                from pathlib import Path
+
+                src = Path(os.environ["LIBCEF_DLL_BZ2"])
+                dst = Path(os.environ["LIBCEF_DLL_OUT"])
+                dst.write_bytes(bz2.decompress(src.read_bytes()))
+                '@ | python -
+
+            - name: Build browser bridge
+              shell: pwsh
+              run: |
+                cmake -S tools/browser_backend_cef -B build/browser_backend_cef -G "Visual Studio 17 2022" -A x64
+                cmake --build build/browser_backend_cef --config Release
+
             - name: Build the game
-              run: make -j$(nproc) SERVER_IP="$COOP_SERVER_IP"
+              run: make -j$(nproc) ENABLE_BROWSER=1 SERVER_IP="$COOP_SERVER_IP"
 
             - name: Generate hash
               run: |
@@ -111,7 +319,7 @@ jobs:
             - name: Zip the game
               run: |
                 cd ./build/us_pc
-                zip -r sm64coopdx_Windows.zip dynos lang mods palettes coop.map discord_game_sdk.dll sm64coopdx.exe
+                zip -r sm64coopdx_Windows.zip cef_resources dynos lang mods palettes coop.map discord_game_sdk.dll sm64coopdx.exe
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4

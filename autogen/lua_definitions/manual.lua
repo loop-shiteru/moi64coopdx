@@ -348,6 +348,232 @@ function log_to_console(message, level)
     -- ...
 end
 
+--- @type any
+--- Sentinel value used to represent JSON `null` in Lua tables and return values.
+json_null = nil
+
+--- @param jsonString string
+--- @return any?
+--- @return string?
+--- Decodes a JSON string into Lua values.
+--- - JSON arrays become 1-indexed Lua tables
+--- - JSON objects become Lua tables with string keys
+--- - JSON `null` becomes `json_null`
+--- Returns `nil, errorMessage` on failure.
+function json_decode(jsonString)
+    -- ...
+end
+
+--- @param value any
+--- @return string?
+--- @return string?
+--- Encodes a Lua value as JSON.
+--- - Array-style tables must use contiguous integer keys starting at `1`
+--- - Empty tables encode as JSON objects
+--- - Use `json_null` to encode JSON `null`
+--- Returns `nil, errorMessage` on failure.
+function json_encode(value)
+    -- ...
+end
+
+--- @class BrowserCreateOptions
+--- @field transparent boolean?
+--- @field audio boolean?
+--- @field on_load fun(id:integer, url:string)?
+--- @field on_error fun(id:integer, message:string, details:string|nil)?
+--- @field on_console fun(id:integer, message:string, level:integer)?
+--- @field on_message fun(id:integer, message:string)?
+--- @field on_paint fun(id:integer, width:integer, height:integer)?
+
+--- @class BrowserHudOptions
+--- @field filter boolean?
+--- @field rotation number?
+--- @field pivot_x number?
+--- @field pivot_y number?
+
+--- @class BrowserWorldOptions
+--- @field width number?
+--- @field height number?
+--- @field offset Vec3f?
+--- @field rotation Vec3f?
+--- @field layer integer?
+--- @field depth boolean?
+--- @field two_sided boolean?
+--- @field emissive boolean?
+--- @field filter boolean?
+
+--- @return boolean
+--- Returns whether the current build has a browser backend available
+function browser_available()
+    -- ...
+end
+
+--- @param width integer
+--- @param height integer
+--- @param opts? BrowserCreateOptions
+--- @return integer
+--- Creates a browser surface owned by the current mod. Returns `0` on failure.
+function browser_create(width, height, opts)
+    -- ...
+end
+
+--- @param id integer
+function browser_destroy(id)
+    -- ...
+end
+
+--- Destroys all browsers owned by the current mod
+function browser_destroy_all()
+    -- ...
+end
+
+--- @param id integer
+--- @param url string
+--- Opens a URL. `mod:///...` and `mod://<mod>/...` are allowed for the owning mod; `file://` is blocked.
+function browser_open_url(id, url)
+    -- ...
+end
+
+--- @param id integer
+function browser_reload(id)
+    -- ...
+end
+
+--- @param id integer
+function browser_stop(id)
+    -- ...
+end
+
+--- @param id integer
+function browser_go_back(id)
+    -- ...
+end
+
+--- @param id integer
+function browser_go_forward(id)
+    -- ...
+end
+
+--- @param id integer
+--- @param code string
+--- @param callback? fun(id:integer, success:boolean, result:string|nil, errorMessage:string|nil)
+--- Runs JavaScript asynchronously
+function browser_run_js(id, code, callback)
+    -- ...
+end
+
+--- @param id integer
+--- @param objectName string
+--- @param functionName string
+--- @param callback fun(...:any)
+--- @return boolean
+--- Exposes a Lua callback to page JavaScript, similar to GMod's `DHTML:AddFunction`.
+--- Objects and arrays are passed to Lua as JSON strings. Use `json_decode(...)` to turn them into Lua tables.
+function browser_add_function(id, objectName, functionName, callback)
+    -- ...
+end
+
+--- @param id integer
+--- @param volume number
+function browser_set_volume(id, volume)
+    -- ...
+end
+
+--- @param id integer
+--- @param muted boolean
+function browser_set_muted(id, muted)
+    -- ...
+end
+
+--- @param id integer
+--- @param width integer
+--- @param height integer
+function browser_resize(id, width, height)
+    -- ...
+end
+
+--- @param id integer
+--- @param x number
+--- @param y number
+--- @param width number
+--- @param height number
+--- @param opts? BrowserHudOptions
+function browser_render_hud(id, x, y, width, height, opts)
+    -- ...
+end
+
+--- @param id integer
+--- @param opts? BrowserWorldOptions
+--- Renders a browser quad in the current geo callback transform
+function browser_render_world(id, opts)
+    -- ...
+end
+
+--- @param obj Object
+--- @param id integer
+--- @param opts? BrowserWorldOptions
+--- Attaches a browser quad to an object
+function browser_attach_object(obj, id, opts)
+    -- ...
+end
+
+--- @param obj Object
+--- @param id integer
+function browser_detach_object(obj, id)
+    -- ...
+end
+
+--- @param obj Object
+--- @param id integer
+--- @param screenX number
+--- @param screenY number
+--- @return boolean
+--- @return integer
+--- @return integer
+--- Projects a screen-space ray onto an attached browser quad
+function browser_pick_object(obj, id, screenX, screenY)
+    -- ...
+end
+
+--- @param id integer
+--- @param x integer
+--- @param y integer
+--- @param modifiers? integer
+function browser_send_mouse_move(id, x, y, modifiers)
+    -- ...
+end
+
+--- @param id integer
+--- @param x integer
+--- @param y integer
+--- @param button integer
+--- @param down boolean
+--- @param clickCount integer
+--- @param modifiers? integer
+function browser_send_mouse_button(id, x, y, button, down, clickCount, modifiers)
+    -- ...
+end
+
+--- @param id integer
+--- @param x integer
+--- @param y integer
+--- @param dx integer
+--- @param dy integer
+--- @param modifiers? integer
+function browser_send_mouse_wheel(id, x, y, dx, dy, modifiers)
+    -- ...
+end
+
+--- @param id integer
+--- @param eventType integer|string
+--- @param keyCode integer
+--- @param nativeCode integer
+--- @param modifiers integer
+--- @param text? string
+function browser_send_key(id, eventType, keyCode, nativeCode, modifiers, text)
+    -- ...
+end
+
 --- @param index integer The index of the scroll target, should match up with the behavior param of `RM_Scroll_Texture` or `editor_Scroll_Texture`
 --- @param name string The name of the vertex buffer that should be used while scrolling the texture
 --- Registers a vertex buffer to be used for a scrolling texture. Should be used with `RM_Scroll_Texture` or `editor_Scroll_Texture`

@@ -13,6 +13,7 @@
 #include "shadow.h"
 #include "sm64.h"
 #include "game/level_update.h"
+#include "pc/browser/browser_manager.h"
 #include "pc/lua/smlua_hooks.h"
 #include "pc/utils/misc.h"
 #include "pc/debuglog.h"
@@ -584,6 +585,10 @@ static void geo_append_display_list(void *displayList, s16 layer) {
         }
         gCurGraphNodeMasterList->listTails[layer] = listNode;
     }
+}
+
+void geo_append_display_list_ext(void *displayList, s16 layer) {
+    geo_append_display_list(displayList, layer);
 }
 
 static void geo_append_display_list_to_all_layers(void *displayList) {
@@ -1660,6 +1665,8 @@ static void geo_process_object(struct Object *node) {
                 gCurGraphNodeObject = NULL;
                 gCurMarioBodyState = NULL;
             }
+
+            browser_manager_render_object(node);
 
             if (node->header.gfx.node.children != NULL) {
                 geo_process_node_and_siblings(node->header.gfx.node.children);

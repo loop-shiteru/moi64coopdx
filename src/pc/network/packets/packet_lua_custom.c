@@ -4,6 +4,35 @@
 #include "pc/lua/smlua.h"
 #include "pc/lua/smlua_utils.h"
 #include "pc/debuglog.h"
+#include "packet_lua_custom.h"
+
+static u8 sLuaCustomSenderLocalIndex = UNKNOWN_LOCAL_INDEX;
+static u8 sLuaCustomSenderGlobalIndex = UNKNOWN_GLOBAL_INDEX;
+
+static void network_lua_custom_set_sender(struct Packet *p) {
+    sLuaCustomSenderLocalIndex = UNKNOWN_LOCAL_INDEX;
+    sLuaCustomSenderGlobalIndex = UNKNOWN_GLOBAL_INDEX;
+
+    if (p == NULL || p->localIndex == UNKNOWN_LOCAL_INDEX || p->localIndex >= MAX_PLAYERS) {
+        return;
+    }
+
+    sLuaCustomSenderLocalIndex = p->localIndex;
+    sLuaCustomSenderGlobalIndex = gNetworkPlayers[p->localIndex].globalIndex;
+}
+
+static void network_lua_custom_clear_sender(void) {
+    sLuaCustomSenderLocalIndex = UNKNOWN_LOCAL_INDEX;
+    sLuaCustomSenderGlobalIndex = UNKNOWN_GLOBAL_INDEX;
+}
+
+u8 network_lua_custom_sender_local_index(void) {
+    return sLuaCustomSenderLocalIndex;
+}
+
+u8 network_lua_custom_sender_global_index(void) {
+    return sLuaCustomSenderGlobalIndex;
+}
 
 void network_send_lua_custom(bool broadcast) {
     lua_State* L = gLuaState;
@@ -127,7 +156,9 @@ void network_receive_lua_custom(struct Packet* p) {
         lua_settable(L, -3);
     }
 
+    network_lua_custom_set_sender(p);
     smlua_call_event_hooks(HOOK_ON_PACKET_RECEIVE, modIndex, tableIndex);
+    network_lua_custom_clear_sender();
     lua_pop(L, 1); // pop table
 }
 
@@ -241,6 +272,8 @@ void network_receive_lua_custom_bytestring(struct Packet* p) {
     s32 bytestringIndex = lua_gettop(L);
 
     // call hook
+    network_lua_custom_set_sender(p);
     smlua_call_event_hooks(HOOK_ON_PACKET_BYTESTRING_RECEIVE, modIndex, bytestringIndex);
+    network_lua_custom_clear_sender();
     lua_pop(L, 1); // pop bytestring
 }

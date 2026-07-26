@@ -13,6 +13,7 @@
 #include "object_list_processor.h"
 #include "spawn_object.h"
 #include "types.h"
+#include "pc/browser/browser_manager.h"
 #include "pc/network/network.h"
 #include "pc/lua/smlua_hooks.h"
 #include "pc/debug_context.h"
@@ -245,6 +246,7 @@ void unload_object(struct Object *obj) {
     obj->firstSurface = 0;
     obj->numSurfaces = 0;
 
+    browser_manager_detach_object_all(obj);
     smlua_call_event_hooks(HOOK_ON_OBJECT_UNLOAD, obj);
 
     deallocate_object(&gFreeObjectList, &obj->header);

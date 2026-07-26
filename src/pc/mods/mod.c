@@ -362,6 +362,18 @@ static bool mod_load_files(struct Mod* mod, char* fullPath) {
         if (!mod_load_files_dir(mod, fullPath, "", fileTypes, true)) { return false; }
     }
 
+    // deal with browser page assets used by mod://
+    {
+        const char* fileTypes[] = {
+            ".html", ".htm", ".css", ".js", ".mjs", ".json", ".txt", ".xml",
+            ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
+            ".woff", ".woff2", ".ttf", ".otf",
+            ".mp3", ".ogg", ".wav", ".mp4", ".webm",
+            NULL
+        };
+        if (!mod_load_files_dir(mod, fullPath, "pages", fileTypes, true)) { return false; }
+    }
+
     // deal with actors directory
     {
         const char* fileTypes[] = { ".bin", ".col", NULL };

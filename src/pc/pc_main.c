@@ -8,6 +8,7 @@
 #include "sm64.h"
 
 #include "pc/lua/smlua.h"
+#include "pc/browser/browser_manager.h"
 #include "pc/lua/utils/smlua_text_utils.h"
 #include "game/memory.h"
 #include "audio/data.h"
@@ -386,6 +387,7 @@ void produce_one_frame(void) {
 
     CTX_EXTENT(CTX_GAME_LOOP, game_loop_one_iteration);
 
+    browser_manager_tick();
     CTX_EXTENT(CTX_SMLUA, smlua_update);
 
     // If we aren't threaded
@@ -454,6 +456,7 @@ void game_deinit(void) {
     audio_shutdown();
     network_shutdown(true, true, false, false);
     smlua_text_utils_shutdown();
+    browser_manager_shutdown();
     smlua_shutdown();
     mods_shutdown();
     djui_shutdown();
@@ -529,6 +532,8 @@ int main(int argc, char *argv[]) {
     configfile_load();
 
     legacy_folder_handler();
+
+    browser_manager_init();
 
     select_graphics_backend();
 

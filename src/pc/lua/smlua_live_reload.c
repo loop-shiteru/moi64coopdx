@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include "smlua.h"
+#include "pc/browser/browser_manager.h"
 #include "smlua_require.h"
 #include "pc/mods/mods.h"
 #include "pc/mods/mods_utils.h"
@@ -343,6 +344,8 @@ static void smlua_reload_module(lua_State *L, struct Mod* mod, struct ModFile *f
 
     // only handle loaded Lua modules
     if (!file->isLoadedLuaModule) { return; }
+
+    browser_manager_destroy_all_for_mod(mod);
 
     // get per-mod "loaded" table
     smlua_get_or_create_mod_loaded_table(L, mod);
